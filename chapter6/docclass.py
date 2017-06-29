@@ -61,10 +61,60 @@ class classifier:
         # 增加对该分类的计数值
         self.incc(cat)
 
-    def fprob(self,f,cat):
-        if self.catcount(cat)==0: return 0
+    def fprob(self, f, cat):
+        if self.catcount(cat) == 0: return 0
         # 特征在分类中出现的总次数除以分类中包含内容项的总数
-        return self.fcount(f,cat)/self.catcount(cat)
+        return self.fcount(f, cat) / self.catcount(cat)
+
+    def weightedprob(self, f, cat, prf, weight=1.0, ap=0.5):
+        # 计算当前概率
+        basicprob = prf(f, cat)
+        # 统计特征在所有分类中出现的次数
+        totals = sum([self.fcount(f, c) for c in self.categories()])
+        # 计算加权平均
+        bp = ((weight * ap) + (totals * basicprob)) / (weight + totals)
+        return bp
+
+    def classify(self,item,default=None):
+        probs={}
+        # 寻找概率的最大分类
+        max=0.0
+        for cat in self.categories( ):
+            probs[cat]=self.prob(item,cat)
+            if probs[cat]>max:
+                max=probs[cat]
+                best=cat
+        # 确保概率值超出阈值×次大概率值
+        for cat in probs:
+            if cat==best: continue
+            if probs[cat]*self.getthreshold(best)>probs[best]: return default
+        return best
+
+
+class naivebayes(classifier):
+    def __init__(self, getfeatures):
+        classifier.__init__(self, getfeatures)
+        self.thresholds = {}
+
+    def docprob(self, item, cat):
+        features = self.getfeatures(item)
+        # 所有特征值的概率相乘
+        p = 1
+        for f in features: p *= self.weightedprob(f, cat, self.fprob)
+        return p
+
+    def prob(self, item, cat):
+        catprob = self.catcount(cat) / self.totalcount()
+        docprob = self.docprob(item, cat)
+        return docprob * catprob
+
+    def setthreshold(self, cat, t):
+        self.thresholds[cat] = t
+
+    def getthreshold(self, cat):
+        if cat not in self.thresholds: return 1.0
+        return self.thresholds[cat]
+
 
 def sampletrain(cl):
     cl.train('Nobody owns the water.', 'good')
