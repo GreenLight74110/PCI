@@ -75,19 +75,19 @@ class classifier:
         bp = ((weight * ap) + (totals * basicprob)) / (weight + totals)
         return bp
 
-    def classify(self,item,default=None):
-        probs={}
+    def classify(self, item, default=None):
+        probs = {}
         # 寻找概率的最大分类
-        max=0.0
-        for cat in self.categories( ):
-            probs[cat]=self.prob(item,cat)
-            if probs[cat]>max:
-                max=probs[cat]
-                best=cat
+        max = 0.0
+        for cat in self.categories():
+            probs[cat] = self.prob(item, cat)
+            if probs[cat] > max:
+                max = probs[cat]
+                best = cat
         # 确保概率值超出阈值×次大概率值
         for cat in probs:
-            if cat==best: continue
-            if probs[cat]*self.getthreshold(best)>probs[best]: return default
+            if cat == best: continue
+            if probs[cat] * self.getthreshold(best) > probs[best]: return default
         return best
 
 
@@ -114,6 +114,60 @@ class naivebayes(classifier):
     def getthreshold(self, cat):
         if cat not in self.thresholds: return 1.0
         return self.thresholds[cat]
+
+
+class fisherclassifier(classifier):
+    def __init__(self, getfeatures):
+        classifier.__init__(self, getfeatures)
+        self.minimums = {}
+
+    def cprob(self, f, cat):
+        # 特征在该分类中出现的概率
+        clf = self.fprob(f, cat)
+        if clf == 0: return 0
+        # 特征在所有分类中出现的概率
+        freqsum = sum([self.fprob(f, c) for c in self.categories()])
+        # 概率等于特征在该分类中出现的概率除以总体概率
+        p = clf / (freqsum)
+        return p
+
+    def fisherprob(self, item, cat):
+        # 所有概率相乘
+        p = 1
+        features = self.getfeatures(item)
+        for f in features:
+            p *= (self.weightedprob(f, cat, self.cprob))
+        # 取自然对数再乘2
+        fscore = -2 * math.log(p)
+        # 利用倒置对数卡方函数求得概率
+        return self.invchi2(fscore, len(features) * 2)
+
+    def invchi2(self, chi, df):
+        m = chi / 2.0
+        sum = term = math.exp(-m)
+        for i in range(1, df // 2):
+            term *= m / i
+            sum += term
+        return min(sum, 1.0)
+
+    def setminimum(self, cat, min):
+        self.minimums[cat] = min
+
+    def getminimum(self, cat):
+        if cat not in self.minimums: return 0
+        return self.minimums[cat]
+
+    def classify(self,item,default=None):
+        # 循环遍历寻找最佳结果
+        best=default
+        max=0.0
+        for c in self.categories( ):
+            p=self.fisherprob(item,c)
+            # 确保超过下限值
+            if p>self.getminimum(c) and p>max:
+                best=c
+                max=p
+        return best
 
 
 def sampletrain(cl):
