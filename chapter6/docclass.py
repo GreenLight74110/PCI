@@ -3,6 +3,8 @@
 import re
 import math
 
+from pysqlite2 import dbapi2 as sqlite
+
 
 def getwords(doc):
     splitter = re.compile('\\W*')
@@ -22,36 +24,80 @@ class classifier:
         self.cc = {}
         self.getfeatures = getfeatures
 
-    # 增加特征/分类的计数值
+    # # 增加特征/分类的计数值
+    # def incf(self, f, cat):
+    #     self.fc.setdefault(f, {})
+    #     self.fc[f].setdefault(cat, 0)
+    #     self.fc[f][cat] += 1
+    #
+    # # 增加对某一分类的计数值
+    # def incc(self, cat):
+    #     self.cc.setdefault(cat, 0)
+    #     self.cc[cat] += 1
+    #
+    # # 某一特征出现于某一分类中的次数
+    # def fcount(self, f, cat):
+    #     if f in self.fc and cat in self.fc[f]:
+    #         return float(self.fc[f][cat])
+    #     return 0.0
+    #
+    # # 属于某一分类的内容项数量
+    # def catcount(self, cat):
+    #     if cat in self.cc:
+    #         return float(self.cc[cat])
+    #     return 0
+    #
+    # # 所有内容项的数量
+    # def totalcount(self):
+    #     return sum(self.cc.values())
+    #
+    # # 所有分类的列表
+    # def categories(self):
+    #     return self.cc.keys()
+
+    def setdb(self, dbfile):
+        self.con = sqlite.connect(dbfile)
+        self.con.execute('create table if not exists fc(feature,category,count)')
+        self.con.execute('create table if not exists cc(category,count)')
+
+
     def incf(self, f, cat):
-        self.fc.setdefault(f, {})
-        self.fc[f].setdefault(cat, 0)
-        self.fc[f][cat] += 1
+        count = self.fcount(f, cat)
+        if count == 0:
+            self.con.execute("insert into fc values ('%s','%s',1)"
+                             % (f, cat))
+        else:
+            self.con.execute("update fc set count=%d where feature='%s' and category='%s'" % (count + 1, f, cat))
 
-    # 增加对某一分类的计数值
-    def incc(self, cat):
-        self.cc.setdefault(cat, 0)
-        self.cc[cat] += 1
-
-    # 某一特征出现于某一分类中的次数
     def fcount(self, f, cat):
-        if f in self.fc and cat in self.fc[f]:
-            return float(self.fc[f][cat])
-        return 0.0
+        res = self.con.execute('select count from fc where feature="%s" and category="%s"' % (f, cat)).fetchone()
+        if res == None:
+            return 0
+        else:
+            return float(res[0])
 
-    # 属于某一分类的内容项数量
+    def incc(self, cat):
+        count = self.catcount(cat)
+        if count == 0:
+            self.con.execute("insert into cc values ('%s',1)" % (cat))
+        else:
+            self.con.execute("update cc set count=%d where category='%s'" % (count + 1, cat))
+
     def catcount(self, cat):
-        if cat in self.cc:
-            return float(self.cc[cat])
-        return 0
+        res = self.con.execute('select count from cc where category="%s"' % (cat)).fetchone()
+        if res == None:
+            return 0
+        else:
+            return float(res[0])
 
-    # 所有内容项的数量
-    def totalcount(self):
-        return sum(self.cc.values())
-
-    # 所有分类的列表
     def categories(self):
-        return self.cc.keys()
+        cur=self.con.execute('select category from cc');
+        return [d[0] for d in cur]
+
+    def totalcount(self):
+        res=self.con.execute('select sum(count) from cc').fetchone( );
+        if res==None: return 0
+        return res[0]
 
     def train(self, item, cat):
         features = self.getfeatures(item)
@@ -60,6 +106,7 @@ class classifier:
             self.incf(f, cat)
         # 增加对该分类的计数值
         self.incc(cat)
+        self.con.commit( )
 
     def fprob(self, f, cat):
         if self.catcount(cat) == 0: return 0
@@ -89,6 +136,7 @@ class classifier:
             if cat == best: continue
             if probs[cat] * self.getthreshold(best) > probs[best]: return default
         return best
+
 
 
 class naivebayes(classifier):
@@ -157,16 +205,16 @@ class fisherclassifier(classifier):
         if cat not in self.minimums: return 0
         return self.minimums[cat]
 
-    def classify(self,item,default=None):
+    def classify(self, item, default=None):
         # 循环遍历寻找最佳结果
-        best=default
-        max=0.0
-        for c in self.categories( ):
-            p=self.fisherprob(item,c)
+        best = default
+        max = 0.0
+        for c in self.categories():
+            p = self.fisherprob(item, c)
             # 确保超过下限值
-            if p>self.getminimum(c) and p>max:
-                best=c
-                max=p
+            if p > self.getminimum(c) and p > max:
+                best = c
+                max = p
         return best
 
 

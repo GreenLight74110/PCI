@@ -1,8 +1,9 @@
 import docclass
+import feedfilter
 
 # Training the Classifier #
 # cl = docclass.classifier(docclass.getwords)
-# cl.train('the quick brown fox jumps over the lazy dog', 'good')
+# cl.train('the quick brown fox jumps over the lazy dog quick', 'good')
 # cl.train('make quick money in the online casino', 'bad')
 # print cl.fcount('quick', 'good')
 # print cl.fcount('quick', 'bad')
@@ -66,3 +67,30 @@ import docclass
 # print cl.classify('quick money')
 # cl.setminimum('good', 0.4)
 # print cl.classify('quick money')
+
+
+#Persisting the Trained Classifiers #
+# reload(docclass)
+# cl=docclass.fisherclassifier(docclass.getwords)
+# cl.setdb('test1.db')
+# docclass.sampletrain(cl)
+# cl2=docclass.naivebayes(docclass.getwords)
+# cl2.setdb('test1.db')
+# print cl2.classify('quick money')
+
+#Filtering Blog Feeds #
+# cl=docclass.fisherclassifier(docclass.getwords)
+# cl.setdb('python_feed.db') # Only if you implemented SQLite
+# feedfilter.read('python_search.xml',cl)
+#
+# print cl.cprob('python','prog')
+# print cl.cprob('python','snake')
+# print cl.cprob('python','monty')
+# print cl.cprob('eric','monty')
+# print cl.fprob('eric','monty')
+
+#Improving Feature Detection #
+reload(feedfilter)
+cl=docclass.fisherclassifier(feedfilter.entryfeatures)
+cl.setdb('python_feed.db') # Only if using the DB version
+feedfilter.read('python_search.xml',cl)
