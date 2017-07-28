@@ -1,3 +1,4 @@
+import random
 import optimization
 s=[1,4,3,2,7,3,6,3,2,4,5,3]
 domain=[(0,9)]*(len(optimization.people)*2)
@@ -16,8 +17,17 @@ domain=[(0,9)]*(len(optimization.people)*2)
 # print optimization.printschedule(s)
 
 #----------Hill Climbing-----------#
-reload(optimization)
-s=optimization.hillclimb(domain,optimization.schedulecost)
-print optimization.schedulecost(s)
-print optimization.printschedule(s)
+# reload(optimization)
+# s=optimization.hillclimb(domain,optimization.schedulecost)
+# print optimization.schedulecost(s)
+# print optimization.printschedule(s)
 
+#----------Simulated Annealing-----------#
+# reload(optimization)
+# s=optimization.annealingoptimize(domain,optimization.schedulecost)
+# print optimization.schedulecost(s)
+# optimization.printschedule(s)
+
+
+for i in range(10):
+    print random.random()
