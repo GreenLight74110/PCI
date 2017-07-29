@@ -118,4 +118,94 @@ def hillclimb(domain, costf):
             break
     return sol
 
+def annealingoptimize(domain,costf,T=10000.0,cool=0.95,step=1):
+    # 随机初始化值
+    vec=[float(random.randint(domain[i][0],domain[i][1]))
+         for i in range(len(domain))]
 
+    while T>0.1:
+        # 选择一个索引值
+        i=random.randint(0,len(domain)-1)
+
+        # 选择一个改变索引值的方向
+        dir=random.randint(-step,step)
+
+        # 创建一个代表题解的新列表，改变其中的一个值
+        vecb=vec[:]
+        vecb[i]+=dir
+        if vecb[i]<domain[i][0]: vecb[i]=domain[i][0]
+        elif vecb[i]>domain[i][1]: vecb[i]=domain[i][1]
+
+        # 计算当前成本和新的成本
+        ea=costf(vec)
+        eb=costf(vecb)
+        p=pow(math.e,(-eb-ea)/T)
+
+        # 判断是否为更好的解，或者趋向最优解可能的临界解？
+        if (eb<ea or random.random()<p):
+            vec=vecb
+
+        # 降低温度
+        T=T*cool
+    return vec
+
+# popsize 种群大小 mutprob 控制变异和交叉的比例
+# elite 种群被认为是优解且允许被传入下一代的部分 maxiter 需运行多少代
+def geneticoptimize(domain,costf,popsize=50,step=1,
+                    mutprob=0.2,elite=0.2,maxiter=100):
+    # 变异操作
+    def mutate(vec):
+        if random.random()<0.7:
+            i=random.randint(0,len(domain)-1)
+            if vec[i]>domain[i][0]:
+                return vec[0:i]+[vec[i]-step]+vec[i+1:]
+            elif vec[i]<domain[i][1]:
+                return vec[0:i]+[vec[i]+step]+vec[i+1:]
+            elif vec[i]==domain[i][1]:
+                return vec[0:i]+domain[i][0]+vec[i+1:]
+            elif vec[i]==domain[i][0]:
+                return vec[0:i]+domain[i][1]+vec[i+1:]
+        return vec
+
+    # 交叉操作
+    def crossover(r1,r2):
+        i=random.randint(1,len(domain)-2)
+        return r1[0:i]+r2[i:]
+
+    # 构造初始种群
+    pop=[]
+    for i in range(popsize):
+        vec=[random.randint(domain[i][0],domain[i][1])
+             for i in range(len(domain))]
+        pop.append(vec)
+
+    # 每一代中有多少胜出者？
+    topelite=int(elite*popsize)
+
+    # 主循环
+    for i in range(maxiter):
+        scores=[(costf(v),v) for v in pop]
+        scores.sort()
+        ranked=[v for (s,v) in scores]
+
+        # 从纯粹的胜出者开始
+        pop=ranked[0:topelite]
+
+        # 添加变异和配对后的胜出者
+        while len(pop)<popsize:
+            if random.random()<mutprob:
+
+                # 变异
+                c=random.randint(0,topelite)
+                pop.append(mutate(ranked[c]))
+            else:
+
+                # 交叉
+                c1=random.randint(0,topelite)
+                c2=random.randint(0,topelite)
+                pop.append(crossover(ranked[c1],ranked[c2]))
+
+        # 打印当前最优值
+        print scores[0][0]
+
+    return scores[0][1]
