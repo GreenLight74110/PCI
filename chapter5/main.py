@@ -28,6 +28,7 @@ domain=[(0,9)]*(len(optimization.people)*2)
 # print optimization.schedulecost(s)
 # optimization.printschedule(s)
 
-
-for i in range(10):
-    print random.random()
+#----------Genetic Algorithms-----------#
+s=optimization.geneticoptimize(domain,optimization.schedulecost)
+print s
+optimization.printschedule(s)
