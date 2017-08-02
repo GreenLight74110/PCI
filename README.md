@@ -13,5 +13,4 @@
 
 ####   [chapter6](https://github.com/GreenLight74110/PCI/tree/master/chapter6)
 
-####   [chapter7](https://github.com/GreenLight74110/PCI/tree/master/chapter7) 
-#####  [markdown](https://github.com/GreenLight74110/PCI/blob/master/chapter7/chapter7-%E5%86%B3%E7%AD%96%E6%A0%91.md)
+####   [chapter7](https://github.com/GreenLight74110/PCI/tree/master/chapter7)
