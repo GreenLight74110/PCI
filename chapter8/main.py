@@ -57,18 +57,48 @@ data=numpredict.wineset2( )
 # print numpredict.crossvalidate(numpredict.weightedknn,data)
 
 #=========Scaling Dimensions=============#
+# reload(numpredict)
+# sdata=numpredict.rescale(data,[8, 4, 0, 10])
+# print numpredict.crossvalidate(knn3,sdata)
+# print numpredict.crossvalidate(numpredict.weightedknn,sdata)
+
+#=======Optimizing the Scale==========#
+# import optimization
+# reload(numpredict)
+# costf=numpredict.createcostfunction(numpredict.knnestimate,data)
+# print optimization.annealingoptimize(numpredict.weightdomain,costf,step=2)
+# print optimization.geneticoptimize(numpredict.weightdomain,costf,popsize=5,step=1,elite=0.2,maxiter=20)
+
+#=======Uneven Distributions=========#
+# reload(numpredict)
+# data=numpredict.wineset3( )
+# print numpredict.wineprice(99.0,20.0)
+# print numpredict.weightedknn(data,[99.0,20.0])
+# print numpredict.crossvalidate(numpredict.weightedknn,data)
+
+#======Estimating the Probability Density=======#
+# reload(numpredict)
+# print numpredict.probguess(data,[99,20],40,80)
+# print numpredict.probguess(data,[99,20],80,120)
+# print numpredict.probguess(data,[99,20],120,1000)
+# print numpredict.probguess(data,[99,20],30,120)
+
+#=====Test Matplotlib=====#
+# from pylab import *
+# a=array([1,2,3,4])
+# b=array([4,2,3,1])
+# plot(a,b)
+# show( )
+# t1=arange(0.0,10.0,0.1)
+# plot(t1,sin(t1))
+# show( )
+
+#===== cumulativegraph =====#
+# reload(numpredict)
+# numpredict.cumulativegraph(data,(1,1),120)
+
+#====== probabilitygraph ===========#
 reload(numpredict)
-sdata=numpredict.rescale(data,[10,10,0,0.5])
-print numpredict.crossvalidate(knn3,sdata)
-print numpredict.crossvalidate(numpredict.weightedknn,sdata)
-
-
-# >>> reload(numpredict)
-# <module 'numpredict' from 'numpredict.py'>
-# >>> sdata=numpredict.rescale(data,[10,10,0,0.5])
-# >>> numpredict.crossvalidate(knn3,sdata)
-# 660.9964024835578
-# >>> numpredict.crossvalidate(numpredict.weightedknn,sdata)
-
+numpredict.probabilitygraph(data,(1,1),120)
 
 

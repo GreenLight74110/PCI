@@ -3,6 +3,8 @@
 from random import random,randint
 import math
 
+from pylab import *
+
 def wineprice(rating,age):
     peak_age=rating-50
 
@@ -143,3 +145,66 @@ def rescale(data,scale):
         scaled=[scale[i]*row['input'][i] for i in range(len(scale))]
         scaleddata.append({'input':scaled,'result':row['result']})
     return scaleddata
+
+def createcostfunction(algf,data):
+    def costf(scale):
+        sdata=rescale(data,scale)
+        return crossvalidate(algf,sdata,trials=20)
+    return costf
+
+weightdomain=[(0,10)]*4
+
+def wineset3():
+    rows=wineset1()
+    for row in rows:
+        if random()<0.5:
+            # 葡萄酒获得了折扣
+            row['result']*=0.6
+    return rows
+
+def probguess(data,vec1,low,high,k=5,weightf=gaussian):
+    dlist=getdistances(data,vec1)
+    nweight=0.0
+    tweight=0.0
+
+    for i in range(k):
+        dist=dlist[i][0]
+        idx=dlist[i][1]
+        weight=weightf(dist)
+        v=data[idx]['result']
+
+        # 当前数据点是否位于指定范围内
+        if v>=low and v<=high:
+            nweight+=weight
+        tweight+=weight
+    if tweight==0: return 0
+
+    # 概率位于指定范围内的权重值除以所有权重值
+    return nweight/tweight
+
+def cumulativegraph(data,vec1,high,k=5,weightf=gaussian):
+    t1=arange(0.0,high,0.1)
+    cprob=array([probguess(data,vec1,0,v,k,weightf) for v in t1])
+    plot(t1,cprob)
+    show()
+
+def probabilitygraph(data,vec1,high,k=5,weightf=gaussian,ss=5.0):
+    # 建立一个代表价格的值域范围
+    t1=arange(0.0,high,0.1)
+
+    # 得到整个值域范围内的所有概率
+    probs=[probguess(data,vec1,v,v+0.1,k,weightf) for v in t1]
+
+    # 通过加上近邻概率的高斯计算结果，对概率值做平滑处理
+    smoothed=[]
+    for i in range(len(probs)):
+        sv=0.0
+        for j in range(0,len(probs)):
+            dist=abs(i-j)*0.1
+            weight=gaussian(dist,sigma=ss)
+            sv+=weight*probs[j]
+        smoothed.append(sv)
+    smoothed=array(smoothed)
+
+    plot(t1,smoothed)
+    show()
