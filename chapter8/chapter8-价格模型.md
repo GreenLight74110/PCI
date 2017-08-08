@@ -439,9 +439,196 @@ print numpredict.crossvalidate(numpredict.weightedknn,sdata)
 985.031294278
 ```
 
+#### 对缩放结果进行优化
 
+当不知道各个变量的重要程度时，就需要一种方法来选择一个合适的缩放参数。
 
+crossvalidate函数对于较差的题解，会返回一个较高的数值结果，可以被看成是一个天然的成本函数，在这里可以将它封装起来，令其接受一组数值作为参数，然后对数据按比例缩放，并计算交叉验证的误差。
 
+在numpredict.py中加入createcostfunction函数：
+
+```python
+def createcostfunction(algf,data):
+  def costf(scale):
+    sdata=rescale(data,scale)
+    return crossvalidate(algf,sdata,trials=20)
+  return costf
+```
+
+定义域为每个维度上的权重范围。
+
+从实际出发，将权重限制在20即可。在numpredict.py中加入：
+
+```python
+weightdomain=[(0,10)]*4
+```
+
+尝试一下退火优化算法：
+
+```python
+import optimization
+reload(numpredict)
+costf=numpredict.createcostfunction(numpredict.knnestimate,data)
+print optimization.annealingoptimize(numpredict.weightdomain,costf,step=2)
+```
+
+输出：
+
+```python
+[5, 10.0, 1, 1]
+```
+
+尝试一下速度更慢但是更加精确的geneticoptimize函数：
+
+```python
+print optimization.geneticoptimize(numpredict.weightdomain,costf,popsize=5,step=1,elite=0.2,maxiter=20)
+```
+
+输出：
+
+```python
+[8, 4, 0, 10]
+```
+
+### 不对称分布
+
+设想，葡萄酒购买者分别来自两个彼此独立的群组：一部分人从小酒馆买的，另一部分人则从折扣店买的（50% cutoff）。然而，这些信息都没有被记录下来。
+
+葡萄酒随机获得了6折折扣：
+
+```python
+def wineset3():
+    rows=wineset1()
+    for row in rows:
+        if random()<0.5:
+            # 葡萄酒获得了折扣
+            row['result']*=0.5
+    return rows
+```
+
+验证一下这种情况：
+
+```python
+reload(numpredict)
+data=numpredict.wineset3( )
+print numpredict.wineprice(99.0,20.0)
+print numpredict.weightedknn(data,[99.0,20.0])
+print numpredict.crossvalidate(numpredict.weightedknn,data)
+```
+
+输出：
+
+```python
+106.071428571
+74.9127009541
+751.681417598
+```
+
+### 估计概率密度
+
+这里将研究葡萄酒落入指定价格区间的概率。
+
+在numpredict.py中新建probguess函数：
+
+```python
+def probguess(data,vec1,low,high,k=5,weightf=gaussian):
+  dlist=getdistances(data,vec1)
+  nweight=0.0
+  tweight=0.0
+  
+  for i in range(k):
+    dist=dlist[i][0]
+    idx=dlist[i][1]
+    weight=weightf(dist)
+    v=data[idx]['result']
+    
+    # 当前数据点是否位于指定范围内
+    if v>=low and v<=high:
+      nweight+=weight
+    tweight+=weight
+  if tweight==0: return 0
+  
+  # The probability is the weights in the range
+  # divided by all the weights
+  return nweight/tweight
+```
+
+输入：
+
+```python
+reload(numpredict)
+print numpredict.probguess(data,[99,20],40,80)
+print numpredict.probguess(data,[99,20],80,120)
+print numpredict.probguess(data,[99,20],120,1000)
+print numpredict.probguess(data,[99,20],30,120)
+```
+
+输出：
+
+```python
+0.0
+0.834513263514
+0.165486736486
+0.834513263514
+```
+
+### 绘制概率分布
+
+为了避免胡乱猜测范围区间，可以建立概率密度的图形化表达。
+
+先安装matplotlib函数库，测试是否安装成功：
+
+```python
+from pylab import *
+a=array([1,2,3,4])
+b=array([4,2,3,1])
+plot(a,b)
+show( )
+t1=arange(0.0,10.0,0.1)
+plot(t1,sin(t1))
+show( )
+```
+
+两种不同的查看概率分布的方法：
+
+累积概率。在numpredict.py中加入cumulativegraph函数：
+
+```python
+def cumulativegraph(data,vec1,high,k=5,weightf=gaussian):
+    t1=arange(0.0,high,0.1)
+    cprob=array([probguess(data,vec1,0,v,k,weightf) for v in t1])
+    plot(t1,cprob)
+    show()
+```
+
+![](http://img1.ph.126.net/cBPuY945Df6hzT7iP0HpLg==/2594636335336826986.png)
+
+概率密度。在numpredict.py中加入probabilitygraph函数：
+
+```python
+def probabilitygraph(data,vec1,high,k=5,weightf=gaussian,ss=5.0):
+  # 建立一个代表价格的值域范围
+  t1=arange(0.0,high,0.1)
+  
+  # 得到整个值域范围内的所有概率
+  probs=[probguess(data,vec1,v,v+0.1,k,weightf) for v in t1]
+  
+  # 通过加上近邻概率的高斯计算结果，对概率值做平滑处理
+  smoothed=[]
+  for i in range(len(probs)):
+    sv=0.0
+    for j in range(0,len(probs)):
+      dist=abs(i-j)*0.1
+      weight=gaussian(dist,sigma=ss)
+      sv+=weight*probs[j]
+    smoothed.append(sv)
+  smoothed=array(smoothed)
+    
+  plot(t1,smoothed)
+  show()
+```
+
+![](http://img0.ph.126.net/xP56yomgBwPvI6x5bi-vWA==/6632524618607917251.png)
 
 
 
