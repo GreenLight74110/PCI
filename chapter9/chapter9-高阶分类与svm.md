@@ -382,5 +382,69 @@ LIBSVM能对一个SVM模型进行训练，给出预测，并利用数据集对�
 
 #### 获取LIBSVM
 
+```python
+下载地址：libsvm的主页http://www.csie.ntu.edu.tw/~cjlin/libsvm/
+
+我下载的版本是libsvm-3.14
+
+解压：tar -zxvf libsvm-3.14
+
+进入libsvm-3.14目录
+
+在命令行（终端）使用命令：make lib 得到 libsvm.so.2 
+
+把 libsvm-3.14/python/*py文件放到 /usr/lib/python2.7/dist-packages 中，而 libsvm.so.2 放到 /usr/lib/python2.7/
+
+在 Python shell 中，键入下列指令，測試是否安裝成功。
+
+>>> from svmutil import *
+```
+
+#### 一个python会话的例子
+
+```python
+from svm import *
+from svmutil import *
+svm_model.predict = lambda self, x: svm_predict([0], [x], self)[0][0]
+prob = svm_problem([1,-1],[[1,0,1],[-1,0,-1]])
+param = svm_parameter()
+param.kernel_type = LINEAR
+param.C = 10
+m=svm_train(prob, param)
+m.predict([1,1,1])
+svm_save_model('test.model',m)
+m = svm_load_model('test.model')
+```
+
+输出：
+
+```python
+*
+optimization finished, #iter = 1
+nu = 0.025000
+obj = -0.250000, rho = 0.000000
+nSV = 2, nBSV = 0
+Total nSV = 2
+Accuracy = 0% (0/1) (classification)
+```
+
+#### 将SVM用于婚介数据集
+
+由于前面的yahoo API用不了，故而这个步骤其实不能正常运作。
+
+```python
+answers,inputs=[r.match for r in scaledset],[r.data for r in scaledset]
+param = svm_parameter()
+param.kernel_type = RBF
+prob = svm_problem(answers,inputs)
+m=svm_train(prob, param)
+newrow=[28.0,-1,-1,26.0,-1,1,2,0.8] # Man doesn't want children, woman does
+m.predict(scalef(newrow))
+newrow=[28.0,-1,1,26.0,-1,1,2,0.8] # Both want children
+m.predict(scalef(newrow))
+```
+
+### 基于Facebook的匹配
+
 
 

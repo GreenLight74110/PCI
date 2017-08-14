@@ -1,3 +1,5 @@
+from svm import *
+from svmutil import *
 
 #======Matchmaker Dataset========#
 import advancedclassify
@@ -19,12 +21,12 @@ matchmaker=advancedclassify.loadmatch('matchmaker.csv')
 
 #=====Creating the New Dataset====#
 # reload(advancedclassify)
-numericalset=advancedclassify.loadnumerical( )
+# numericalset=advancedclassify.loadnumerical( )
 # print numericalset[0].data
 
 #====Scaling the Data=====#
 # reload(advancedclassify)
-scaledset,scalef=advancedclassify.scaledata(numericalset)
+# scaledset,scalef=advancedclassify.scaledata(numericalset)
 # avgs=advancedclassify.lineartrain(scaledset)
 # print numericalset[0].data
 # print numericalset[0].match
@@ -51,3 +53,35 @@ scaledset,scalef=advancedclassify.scaledata(numericalset)
 # newrow=[28.0,-1,1,26.0,-1,1,2,0.8] # Both want children
 # print advancedclassify.nlclassify(scalef(newrow),scaledset,ssoffset)
 
+#=====A Sample Session======#
+
+# svm_model.predict = lambda self, x: svm_predict([0], [x], self)[0][0]
+# prob = svm_problem([1,-1],[[1,0,1],[-1,0,-1]])
+# param = svm_parameter()
+# param.kernel_type = LINEAR
+# param.C = 10
+# m=svm_train(prob, param)
+# m.predict([1,1,1])
+# svm_save_model('test.model',m)
+# m = svm_load_model('test.model')
+
+#======Applying SVM to the Matchmaker Dataset========#
+# answers,inputs=[r.match for r in scaledset],[r.data for r in scaledset]
+#
+# param = svm_parameter()
+# param.kernel_type = RBF
+# prob = svm_problem(answers,inputs)
+# m=svm_train(prob, param)
+#
+# newrow=[28.0,-1,-1,26.0,-1,1,2,0.8] # Man doesn't want children, woman does
+# m.predict(scalef(newrow))
+# newrow=[28.0,-1,1,26.0,-1,1,2,0.8] # Both want children
+# m.predict(scalef(newrow))
+
+
+import facebook
+s=facebook.fbsession( )
+friends=s.getfriends( )
+print friends[1]
+u'iY5TTbS-0fvs.'
+print s.getinfo(friends[0:2])
